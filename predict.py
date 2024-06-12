@@ -8,13 +8,8 @@ import numpy as np
 import torch
 from cog import BasePredictor, Input, Path
 from diffusers import (
-    DDIMScheduler,
-    DiffusionPipeline,
-    DPMSolverMultistepScheduler,
-    EulerAncestralDiscreteScheduler,
-    EulerDiscreteScheduler,
-    HeunDiscreteScheduler,
-    PNDMScheduler,
+    StableDiffusion3Pipeline,
+    StableDiffusion3Img2ImgPipeline
 )
 from diffusers.pipelines.stable_diffusion.safety_checker import (
     StableDiffusionSafetyChecker,
@@ -28,22 +23,6 @@ SAFETY_CACHE = "./safety-cache"
 FEATURE_EXTRACTOR = "./feature-extractor"
 SD3_URL = "TBD"
 SAFETY_URL = "https://weights.replicate.delivery/default/sdxl/safety-1.0.tar"
-
-
-class KarrasDPM:
-    def from_config(config):
-        return DPMSolverMultistepScheduler.from_config(config, use_karras_sigmas=True)
-
-
-SCHEDULERS = {
-    "DDIM": DDIMScheduler,
-    "DPMSolverMultistep": DPMSolverMultistepScheduler,
-    "HeunDiscrete": HeunDiscreteScheduler,
-    "KarrasDPM": KarrasDPM,
-    "K_EULER_ANCESTRAL": EulerAncestralDiscreteScheduler,
-    "K_EULER": EulerDiscreteScheduler,
-    "PNDM": PNDMScheduler,
-}
 
 
 def download_weights(url, dest):
@@ -72,7 +51,7 @@ class Predictor(BasePredictor):
             download_weights(SD3_URL, SD3_MODEL_CACHE)
 
         print("Loading sd3 txt2img pipeline...")
-        self.txt2img_pipe = DiffusionPipeline.from_pretrained(
+        self.txt2img_pipe = StableDiffusion3Pipeline.from_pretrained(
             SD3_MODEL_CACHE,
             torch_dtype=torch.float16,
             use_safetensors=True,
@@ -82,13 +61,15 @@ class Predictor(BasePredictor):
         self.txt2img_pipe.to("cuda")
 
         print("Loading sd3 img2img pipeline...")
-        self.img2img_pipe = TBD(
+        self.img2img_pipe = StableDiffusion3Img2ImgPipeline(
             vae=self.txt2img_pipe.vae,
             text_encoder=self.txt2img_pipe.text_encoder,
             text_encoder_2=self.txt2img_pipe.text_encoder_2,
+            text_encoder_3=self.txt2img_pipe.text_encoder_3,
             tokenizer=self.txt2img_pipe.tokenizer,
             tokenizer_2=self.txt2img_pipe.tokenizer_2,
-            unet=self.txt2img_pipe.unet,
+            tokenizer_3=self.txt2img_pipe.tokenizer_3,
+            transformer=self.txt2img_pipe.transformer,
             scheduler=self.txt2img_pipe.scheduler,
         )
         self.img2img_pipe.to("cuda")
@@ -110,13 +91,27 @@ class Predictor(BasePredictor):
             clip_input=safety_checker_input.pixel_values.to(torch.float16),
         )
         return image, has_nsfw_concept
+    
+    def aspect_ratio_to_width_height(self, aspect_ratio: str):
+        aspect_ratios = {
+            "1:1": (1024, 1024),
+            "16:9": (1344, 768),
+            "21:9": (1536, 640),
+            "3:2": (1216, 832),
+            "2:3": (832, 1216),
+            "4:5": (896, 1088),
+            "5:4": (1088, 896),
+            "9:16": (768, 1344),
+            "9:21": (640, 1536),
+        }
+        return aspect_ratios.get(aspect_ratio)
 
     @torch.inference_mode()
     def predict(
         self,
         prompt: str = Input(
             description="Input prompt",
-            default="An astronaut riding a rainbow unicorn",
+            default="",
         ),
         negative_prompt: str = Input(
             description="Input Negative Prompt",
@@ -126,13 +121,9 @@ class Predictor(BasePredictor):
             description="Input image for img2img or inpaint mode",
             default=None,
         ),
-        width: int = Input(
-            description="Width of output image",
-            default=1024,
-        ),
-        height: int = Input(
-            description="Height of output image",
-            default=1024,
+        aspect_ratio: str = Input(
+            choices=["1:1", "16:9", "21:9", "2:3", "3:2", "4:5", "5:4", "9:16", "9:21"],
+            default="1:1",
         ),
         num_outputs: int = Input(
             description="Number of images to output.",
@@ -140,22 +131,14 @@ class Predictor(BasePredictor):
             le=4,
             default=1,
         ),
-        scheduler: str = Input(
-            description="scheduler",
-            choices=SCHEDULERS.keys(),
-            default="K_EULER",
-        ),
-        num_inference_steps: int = Input(
-            description="Number of denoising steps", ge=1, le=500, default=50
-        ),
         guidance_scale: float = Input(
-            description="Scale for classifier-free guidance", ge=1, le=50, default=7.5
+            description="Scale for classifier-free guidance", ge=1, le=50, default=7.0
         ),
         prompt_strength: float = Input(
             description="Prompt strength when using img2img / inpaint. 1.0 corresponds to full destruction of information in image",
             ge=0.0,
             le=1.0,
-            default=0.8,
+            default=0.6,
         ),
         seed: int = Input(
             description="Random seed. Leave blank to randomize the seed", default=None
@@ -170,9 +153,9 @@ class Predictor(BasePredictor):
             seed = int.from_bytes(os.urandom(2), "big")
         print(f"Using seed: {seed}")
 
-        # OOMs can leave vae in bad state
-        if self.txt2img_pipe.vae.dtype == torch.float32:
-            self.txt2img_pipe.vae.to(dtype=torch.float16)
+        width, height = self.aspect_ratio_to_width_height(aspect_ratio)
+
+        num_inference_steps = 28
 
         sd3_kwargs = {}
         print(f"Prompt: {prompt}")
@@ -187,7 +170,6 @@ class Predictor(BasePredictor):
             sd3_kwargs["height"] = height
             pipe = self.txt2img_pipe
 
-        pipe.scheduler = SCHEDULERS[scheduler].from_config(pipe.scheduler.config)
         generator = torch.Generator("cuda").manual_seed(seed)
 
         common_args = {
