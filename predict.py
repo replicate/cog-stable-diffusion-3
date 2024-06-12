@@ -144,6 +144,17 @@ class Predictor(BasePredictor):
         seed: int = Input(
             description="Random seed. Leave blank to randomize the seed", default=None
         ),
+        output_format: str = Input(
+            description="Format of the output images",
+            choices=["webp", "jpg", "png"],
+            default="webp",
+        ),
+        output_quality: int = Input(
+            description="Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs",
+            default=80,
+            ge=0,
+            le=100,
+        ),
         disable_safety_checker: bool = Input(
             description="Disable safety checker for generated images. This feature is only available through the API. See [https://replicate.com/docs/how-does-replicate-work#safety](https://replicate.com/docs/how-does-replicate-work#safety)",
             default=False,
@@ -192,8 +203,11 @@ class Predictor(BasePredictor):
                 if has_nsfw_content[i]:
                     print(f"NSFW content detected in image {i}")
                     continue
-            output_path = f"/tmp/out-{i}.png"
-            image.save(output_path)
+            output_path = f"/tmp/out-{i}.{output_format}"
+            if output_format != 'png':
+                image.save(output_path, quality=output_quality, optimize=True)
+            else:
+                image.save(output_path)
             output_paths.append(Path(output_path))
 
         if len(output_paths) == 0:
