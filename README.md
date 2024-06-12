@@ -9,7 +9,7 @@ Use this repository with the [model pushing guide](https://replicate.com/docs/gu
 
 ## Basic Usage
 
-for prediction,
+For prediction,
 
 ```bash
 cog predict -i prompt="a photo of a cool dog"

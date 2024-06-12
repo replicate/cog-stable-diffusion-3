@@ -114,14 +114,15 @@ class Predictor(BasePredictor):
             default="",
         ),
         negative_prompt: str = Input(
-            description="Input Negative Prompt",
+            description="Input negative prompt",
             default="",
         ),
         image: Path = Input(
-            description="Input image for img2img or inpaint mode",
+            description="Input image for img2img mode",
             default=None,
         ),
         aspect_ratio: str = Input(
+            description="Aspect ratio for the generated image",
             choices=["1:1", "16:9", "21:9", "2:3", "3:2", "4:5", "5:4", "9:16", "9:21"],
             default="1:1",
         ),
@@ -135,7 +136,7 @@ class Predictor(BasePredictor):
             description="Scale for classifier-free guidance", ge=1, le=50, default=7.0
         ),
         prompt_strength: float = Input(
-            description="Prompt strength when using img2img / inpaint. 1.0 corresponds to full destruction of information in image",
+            description="Prompt strength when using img2img. 1.0 corresponds to full destruction of information in image",
             ge=0.0,
             le=1.0,
             default=0.6,
