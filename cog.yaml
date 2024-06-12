@@ -14,9 +14,8 @@ build:
   python_packages:
     - "git+https://github.com/huggingface/diffusers.git@ec068f9b5bf7c65f93125ec889e0ff1792a00da1#egg=diffusers"
     - "torch==2.2"
-    - "transformers==4.31.0"
-    - "invisible-watermark==0.2.0"
-    - "accelerate"
+    - "transformers==4.41.2"
+    - "accelerate==0.31.0"
     - "sentencepiece"
     - "protobuf"
 
