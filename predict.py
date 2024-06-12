@@ -21,7 +21,7 @@ from transformers import CLIPImageProcessor
 SD3_MODEL_CACHE = "./sd3-cache"
 SAFETY_CACHE = "./safety-cache"
 FEATURE_EXTRACTOR = "./feature-extractor"
-SD3_URL = "TBD"
+SD3_URL = "https://weights.replicate.delivery/default/sd3/sd3-fp16.tar"
 SAFETY_URL = "https://weights.replicate.delivery/default/sdxl/safety-1.0.tar"
 
 
