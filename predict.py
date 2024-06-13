@@ -15,6 +15,7 @@ from diffusers.pipelines.stable_diffusion.safety_checker import (
     StableDiffusionSafetyChecker,
 )
 from diffusers.utils import load_image
+from diffusers.image_processor import VaeImageProcessor
 from transformers import CLIPImageProcessor
 
 
@@ -72,6 +73,9 @@ class Predictor(BasePredictor):
             transformer=self.txt2img_pipe.transformer,
             scheduler=self.txt2img_pipe.scheduler,
         )
+
+        # fix for img2img
+        self.img2img_pipe.image_processor = VaeImageProcessor(vae_scale_factor=16, vae_latent_channels=self.img2img_pipe.vae.config.latent_channels)
         self.img2img_pipe.to("cuda")
 
     
@@ -133,7 +137,7 @@ class Predictor(BasePredictor):
             default=1,
         ),
         guidance_scale: float = Input(
-            description="Scale for classifier-free guidance", ge=1, le=50, default=7.0
+            description="Scale for classifier-free guidance", ge=0, le=50, default=7.0
         ),
         prompt_strength: float = Input(
             description="Prompt strength when using img2img. 1.0 corresponds to full destruction of information in image",
