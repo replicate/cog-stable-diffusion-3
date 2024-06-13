@@ -14,6 +14,7 @@ build:
   python_packages:
     - "git+https://github.com/huggingface/diffusers.git@ec068f9b5bf7c65f93125ec889e0ff1792a00da1#egg=diffusers"
     - "torch==2.2"
+    - "torchvision==0.17.0"
     - "transformers==4.41.2"
     - "accelerate==0.31.0"
     - "sentencepiece"
@@ -21,5 +22,5 @@ build:
 
   run:
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/latest/download/pget_$(uname -s)_$(uname -m)" && chmod +x /usr/local/bin/pget
-    
+
 predict: "predict.py:Predictor"

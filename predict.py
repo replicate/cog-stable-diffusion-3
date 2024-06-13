@@ -7,10 +7,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 import torch
 from cog import BasePredictor, Input, Path
-from diffusers import (
-    StableDiffusion3Pipeline,
-    StableDiffusion3Img2ImgPipeline
-)
+from diffusers import StableDiffusion3Pipeline, StableDiffusion3Img2ImgPipeline
 from diffusers.pipelines.stable_diffusion.safety_checker import (
     StableDiffusionSafetyChecker,
 )
@@ -18,6 +15,8 @@ from diffusers.utils import load_image
 from diffusers.image_processor import VaeImageProcessor
 from transformers import CLIPImageProcessor
 from PIL import ImageOps
+
+from diff_pipe import StableDiffusion3DiffImg2ImgPipeline
 
 
 SD3_MODEL_CACHE = "./sd3-cache"
@@ -76,10 +75,28 @@ class Predictor(BasePredictor):
         )
 
         # fix for img2img
-        self.img2img_pipe.image_processor = VaeImageProcessor(vae_scale_factor=16, vae_latent_channels=self.img2img_pipe.vae.config.latent_channels)
+        self.img2img_pipe.image_processor = VaeImageProcessor(
+            vae_scale_factor=16,
+            vae_latent_channels=self.img2img_pipe.vae.config.latent_channels,
+        )
         self.img2img_pipe.to("cuda")
 
-    
+        print("Loading sd3 inpaint pipeline...")
+        self.inpaint_pipe = StableDiffusion3DiffImg2ImgPipeline(
+            vae=self.txt2img_pipe.vae,
+            text_encoder=self.txt2img_pipe.text_encoder,
+            text_encoder_2=self.txt2img_pipe.text_encoder_2,
+            text_encoder_3=self.txt2img_pipe.text_encoder_3,
+            tokenizer=self.txt2img_pipe.tokenizer,
+            tokenizer_2=self.txt2img_pipe.tokenizer_2,
+            tokenizer_3=self.txt2img_pipe.tokenizer_3,
+            transformer=self.txt2img_pipe.transformer,
+            scheduler=self.txt2img_pipe.scheduler,
+        ).to("cuda")
+        self.inpaint_pipe.image_processor = VaeImageProcessor(
+            vae_scale_factor=16,
+            vae_latent_channels=self.inpaint_pipe.vae.config.latent_channels,
+        )
         print("setup took: ", time.time() - start)
 
     def load_image(self, path):
@@ -97,7 +114,7 @@ class Predictor(BasePredictor):
             clip_input=safety_checker_input.pixel_values.to(torch.float16),
         )
         return image, has_nsfw_concept
-    
+
     def aspect_ratio_to_width_height(self, aspect_ratio: str):
         aspect_ratios = {
             "1:1": (1024, 1024),
@@ -125,6 +142,10 @@ class Predictor(BasePredictor):
         ),
         image: Path = Input(
             description="Input image for img2img mode",
+            default=None,
+        ),
+        mask: Path = Input(
+            description="Mask for inpainting. White pixels will be inpainted and black pixels will be preserved. Gray pixels will be partially inpainted. A `prompt_strength` setting of >0.8 usually works well. Note that Stable Diffusion 3 was not trained for inpainting, so your mileage may vary.",
             default=None,
         ),
         aspect_ratio: str = Input(
@@ -177,7 +198,19 @@ class Predictor(BasePredictor):
 
         sd3_kwargs = {}
         print(f"Prompt: {prompt}")
-        if image:
+        if mask and not image:
+            raise ValueError("`mask` cannot be used without `image`")
+        elif image and mask:
+            if num_outputs != 1:
+                raise ValueError("Inpainting currently only works with num_outputs=1")
+
+            print("inpainting mode")
+
+            sd3_kwargs["image"] = self.load_image(image)
+            sd3_kwargs["strength"] = prompt_strength
+            sd3_kwargs["mask"] = self.load_image(mask)
+            pipe = self.inpaint_pipe
+        elif image:
             print("img2img mode")
             sd3_kwargs["image"] = self.load_image(image)
             sd3_kwargs["strength"] = prompt_strength
@@ -210,7 +243,7 @@ class Predictor(BasePredictor):
                     print(f"NSFW content detected in image {i}")
                     continue
             output_path = f"/tmp/out-{i}.{output_format}"
-            if output_format != 'png':
+            if output_format != "png":
                 image.save(output_path, quality=output_quality, optimize=True)
             else:
                 image.save(output_path)
