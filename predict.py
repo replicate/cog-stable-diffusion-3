@@ -17,6 +17,7 @@ from diffusers.pipelines.stable_diffusion.safety_checker import (
 from diffusers.utils import load_image
 from diffusers.image_processor import VaeImageProcessor
 from transformers import CLIPImageProcessor
+from PIL import ImageOps
 
 
 SD3_MODEL_CACHE = "./sd3-cache"
@@ -83,7 +84,8 @@ class Predictor(BasePredictor):
 
     def load_image(self, path):
         shutil.copyfile(path, "/tmp/image.png")
-        return load_image("/tmp/image.png").convert("RGB")
+        tmp_img = load_image("/tmp/image.png").convert("RGB")
+        return ImageOps.contain(tmp_img, (1024, 1024))
 
     def run_safety_checker(self, image):
         safety_checker_input = self.feature_extractor(image, return_tensors="pt").to(
