@@ -19,6 +19,8 @@ from diffusers.image_processor import VaeImageProcessor
 from transformers import CLIPImageProcessor
 from PIL import ImageOps
 
+from weights import WeightsDownloadCache
+
 
 SD3_MODEL_CACHE = "./sd3-cache"
 SAFETY_CACHE = "./safety-cache"
@@ -36,7 +38,24 @@ def download_weights(url, dest):
 
 
 class Predictor(BasePredictor):
-    def setup(self):
+    def load_trained_weights(self, weights):
+        if weights == self.loaded_weights:
+            print("weights already loaded, no-op")
+            return
+        if self.loaded_weights is not None:
+            self.unload_trained_weights()
+
+        local_weights_path = self.weights_cache.ensure(weights)
+        self.txt2img_pipe.load_lora_weights(local_weights_path)
+        self.loaded_weights = weights
+        return
+
+    def unload_trained_weights(self):
+        self.txt2img_pipe.unload_lora_weights()
+        self.loaded_weights = None
+        return
+
+    def setup(self, weights: Optional[Path] = None):
         """Load the model into memory to make running multiple predictions efficient"""
 
         start = time.time()
@@ -59,6 +78,13 @@ class Predictor(BasePredictor):
             use_safetensors=True,
             variant="fp16",
         )
+
+        self.weights_cache = WeightsDownloadCache()
+        self.loaded_weights = None
+        if str(weights) == "weights":
+            weights = None
+        if weights:
+            self.load_trained_weights(weights)
 
         self.txt2img_pipe.to("cuda")
 
@@ -139,7 +165,7 @@ class Predictor(BasePredictor):
             default=1,
         ),
         guidance_scale: float = Input(
-            description="Scale for classifier-free guidance", ge=0, le=50, default=7.0
+            description="Scale for classifier-free guidance", ge=0, le=50, default=4.5
         ),
         prompt_strength: float = Input(
             description="Prompt strength when using img2img. 1.0 corresponds to full destruction of information in image",
@@ -165,11 +191,20 @@ class Predictor(BasePredictor):
             description="Disable safety checker for generated images. This feature is only available through the API. See [https://replicate.com/docs/how-does-replicate-work#safety](https://replicate.com/docs/how-does-replicate-work#safety)",
             default=False,
         ),
+        replicate_weights: str = Input(
+            description="Replicate LoRA weights to use. Leave blank to use the default weights.",
+            default=None,
+        )
     ) -> List[Path]:
         """Run a single prediction on the model."""
         if seed is None:
             seed = int.from_bytes(os.urandom(2), "big")
         print(f"Using seed: {seed}")
+
+        if replicate_weights:
+            self.load_trained_weights(replicate_weights)
+        elif self.loaded_weights is not None:
+            self.unload_trained_weights()
 
         width, height = self.aspect_ratio_to_width_height(aspect_ratio)
 
