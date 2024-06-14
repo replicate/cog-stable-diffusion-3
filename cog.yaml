@@ -21,8 +21,10 @@ build:
     - "torchvision==0.17"
     - "peft"
     - "tensorboard"
+    - "prodigyopt"
 
   run:
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/latest/download/pget_$(uname -s)_$(uname -m)" && chmod +x /usr/local/bin/pget
     
 predict: "predict.py:Predictor"
+train: "train_wrapper.py:train"
