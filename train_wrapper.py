@@ -18,7 +18,7 @@ class TrainingOutput(BaseModel):
 
 def train(
         input_images: Path = Input(description="a .tar file containing the images you'll use for fine tuning"),
-        instance_prompt: str = Input(description="The single caption for your training image"),
+        instance_prompt: str = Input(description="The single caption to be used for all of your training images"),
         inputs: str = Input(description="All the params you want to pass to the training script, separated by space. e.g. --resolution 1024 --train_batch_size 1", default=""),
         return_logs: bool = Input(description="If true, return tensorboard logs from training", default=False)
         ) -> TrainingOutput:
