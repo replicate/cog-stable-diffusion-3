@@ -9,5 +9,5 @@ fi
 
 accelerate launch trainer.py \
   --pretrained_model_name_or_path=/src/sd3-cache \
-  --instance_data_dir=/src/datasets/monstertoy \
+  --instance_data_dir=/src/lora-dataset/ \
   "$@"
