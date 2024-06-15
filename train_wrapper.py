@@ -22,6 +22,7 @@ class TrainingOutput(BaseModel):
 def train(
         input_images: Path = Input(description='''a .tar file containing the images you'll use for fine tuning. You can add a csv of captions (captions.csv) to provide per-image captions; default image & caption columns are "image" and "caption". You can specify alternatives with the --image_column and --caption_column arguments.'''),
         instance_prompt: str = Input(description="The single caption to be used for all of your training images. Ignored if you pass a csv of captions with input images"),
+        validation_prompt: str = Input(description="The prompt to run for validation if you want to run validation. This does not get parsed properly in the inputs field, so it's here"),
         inputs: str = Input(description="All the params you want to pass to the training script, separated by space. e.g. --resolution 1024 --train_batch_size 1", default=""),
         return_logs: bool = Input(description="If true, return tensorboard logs from training. NOT FULLY TESTED YET", default=False)
         ) -> TrainingOutput:
@@ -59,6 +60,9 @@ def train(
 
     if caption_csv:
         to_run.append(f'--caption_csv={caption_csv}')
+    
+    if validation_prompt:
+        to_run.append(f"--validation_prompt={validation_prompt}")
 
     print("training with command", to_run)
     proc = subprocess.Popen(to_run, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
