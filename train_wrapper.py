@@ -8,6 +8,8 @@ from cog import Input, BaseModel, Path
 
 import subprocess
 
+from predict import SD3_MODEL_CACHE, SD3_URL, download_weights
+
 OUTPUT_DIR = '/src/sd3-lora-out'
 IMAGE_DIR = '/src/lora-dataset'
 CAPTION_DIR = '/src/captions'
@@ -47,7 +49,11 @@ def train(
                 tar_info.name = os.path.basename(tar_info.name)
                 tar_ref.extract(tar_info, CAPTION_DIR)
                 caption_csv = os.path.join(CAPTION_DIR, tar_info.name)
+
+    if not os.path.exists(SD3_MODEL_CACHE):
+        download_weights(SD3_URL, SD3_MODEL_CACHE)
     
+    inputs = inputs.replace('"', '') # quotes don't pass well to the actual script
     args = inputs.split()
     to_run = ['./train.sh', f"--instance_prompt={instance_prompt}", f"--output_dir={OUTPUT_DIR}"] + args
 
