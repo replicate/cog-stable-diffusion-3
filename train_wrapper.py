@@ -18,10 +18,10 @@ class TrainingOutput(BaseModel):
 
 
 def train(
-        input_images: Path = Input(description="a .tar file containing the images you'll use for fine tuning"),
-        instance_prompt: str = Input(description="The single caption to be used for all of your training images"),
+        input_images: Path = Input(description='''a .tar file containing the images you'll use for fine tuning. You can add a csv of captions (captions.csv) to provide per-image captions; default image & caption columns are "image" and "caption". You can specify alternatives with the --image_column and --caption_column arguments.'''),
+        instance_prompt: str = Input(description="The single caption to be used for all of your training images. Ignored if you pass a csv of captions with input images"),
         inputs: str = Input(description="All the params you want to pass to the training script, separated by space. e.g. --resolution 1024 --train_batch_size 1", default=""),
-        return_logs: bool = Input(description="If true, return tensorboard logs from training", default=False)
+        return_logs: bool = Input(description="If true, return tensorboard logs from training. NOT FULLY TESTED YET", default=False)
         ) -> TrainingOutput:
     if os.path.exists(OUTPUT_DIR):
         shutil.rmtree(OUTPUT_DIR)

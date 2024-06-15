@@ -704,18 +704,13 @@ class DreamBoothDataset(Dataset):
                 instance_images = []
                 img_to_caption = {}
                 self.custom_instance_prompts = []
+                caption_column = args.caption_column if args.caption_column else 'caption'
+                image_column = args.image_column if args.image_column else 'image'
 
                 with open(caption_csv, 'r') as file:
                     reader = csv.DictReader(file)
                     for row in reader:
-                        if args.caption_column in row:
-                            img_to_caption[row[args.caption_column]] = row['caption']
-                        if 'image' in row:
-                            img_to_caption[row['image']] = row['caption']
-                        elif 'image_file' in row:
-                            img_to_caption[row['image_file']] = row['caption']
-                        else:
-                            raise Exception("You need to pass in a caption column!")
+                        img_to_caption[row[image_column]] = row[caption_column]
 
                 for path in list(Path(instance_data_root).iterdir()):
                     instance_images.append(Image.open(path))
