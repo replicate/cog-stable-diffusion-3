@@ -10,6 +10,7 @@ import subprocess
 
 OUTPUT_DIR = '/src/sd3-lora-out'
 IMAGE_DIR = '/src/lora-dataset'
+CAPTION_DIR = '/src/captions'
 
 class TrainingOutput(BaseModel):
     weights: Path
@@ -27,11 +28,13 @@ def train(
 
     if os.path.exists(IMAGE_DIR):
         shutil.rmtree(IMAGE_DIR)
+    if os.path.exists(CAPTION_DIR):
+        shutil.rmtree(CAPTION_DIR)
 
     assert str(input_images).endswith(
         ".tar"
     ), "files must be a tar file if not zip"
-
+    caption_csv = None
     with tarfile.open(input_images, "r") as tar_ref:
         for tar_info in tar_ref:
             if tar_info.name[-1] == "/" or tar_info.name.startswith("__MACOSX"):
@@ -40,13 +43,17 @@ def train(
             if mt and mt[0] and mt[0].startswith("image/"):
                 tar_info.name = os.path.basename(tar_info.name)
                 tar_ref.extract(tar_info, IMAGE_DIR)
-            # if mt and mt[0] and mt[0] == "text/csv" and CSV_MATCH in tar_info.name:
-            #     tar_info.name = os.path.basename(tar_info.name)
-            #     tar_ref.extract(tar_info, TEMP_IN_DIR)
-            #     caption_csv = os.path.join(TEMP_IN_DIR, tar_info.name)
+            if mt and mt[0] and mt[0] == "text/csv":
+                tar_info.name = os.path.basename(tar_info.name)
+                tar_ref.extract(tar_info, CAPTION_DIR)
+                caption_csv = os.path.join(CAPTION_DIR, tar_info.name)
     
     args = inputs.split()
     to_run = ['./train.sh', f"--instance_prompt={instance_prompt}", f"--output_dir={OUTPUT_DIR}"] + args
+
+    if caption_csv:
+        to_run.append(f'--caption_csv={caption_csv}')
+
     print("training with command", to_run)
     proc = subprocess.Popen(to_run, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 

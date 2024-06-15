@@ -15,6 +15,7 @@
 
 import argparse
 import copy
+import csv
 import gc
 import itertools
 import logging
@@ -252,6 +253,12 @@ def parse_args(input_args=None):
         type=str,
         default=None,
         help=("A folder containing the training data. "),
+    )
+    parser.add_argument(
+        "--caption_csv",
+        type=str,
+        default=None,
+        help="A directory with the location of a csv that contains captions for images. overrides default caption."
     )
 
     parser.add_argument(
@@ -628,6 +635,7 @@ class DreamBoothDataset(Dataset):
         size=1024,
         repeats=1,
         center_crop=False,
+        caption_csv=None
     ):
         self.size = size
         self.center_crop = center_crop
@@ -691,9 +699,34 @@ class DreamBoothDataset(Dataset):
             self.instance_data_root = Path(instance_data_root)
             if not self.instance_data_root.exists():
                 raise ValueError("Instance images root doesn't exists.")
+                        
+            if caption_csv:
+                instance_images = []
+                img_to_caption = {}
+                self.custom_instance_prompts = []
 
-            instance_images = [Image.open(path) for path in list(Path(instance_data_root).iterdir())]
-            self.custom_instance_prompts = None
+                with open(caption_csv, 'r') as file:
+                    reader = csv.DictReader(file)
+                    for row in reader:
+                        if args.caption_column in row:
+                            img_to_caption[row[args.caption_column]] = row['caption']
+                        if 'image' in row:
+                            img_to_caption[row['image']] = row['caption']
+                        elif 'image_file' in row:
+                            img_to_caption[row['image_file']] = row['caption']
+                        else:
+                            raise Exception("You need to pass in a caption column!")
+
+                for path in list(Path(instance_data_root).iterdir()):
+                    instance_images.append(Image.open(path))
+                    self.custom_instance_prompts.extend(itertools.repeat(img_to_caption[path.name], repeats))
+            
+            else:
+                instance_images = [Image.open(path) for path in list(Path(instance_data_root).iterdir())]
+                self.custom_instance_prompts = None
+
+        print(len(instance_images))
+        print(self.custom_instance_prompts)
 
         self.instance_images = []
         for img in instance_images:
@@ -1282,6 +1315,7 @@ def main(args):
         size=args.resolution,
         repeats=args.repeats,
         center_crop=args.center_crop,
+        caption_csv=args.caption_csv
     )
 
     train_dataloader = torch.utils.data.DataLoader(
