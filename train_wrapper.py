@@ -40,7 +40,7 @@ def train(
     caption_csv = None
     with tarfile.open(input_images, "r") as tar_ref:
         for tar_info in tar_ref:
-            if tar_info.name[-1] == "/" or tar_info.name.startswith("__MACOSX"):
+            if tar_info.name[-1] == "/" or tar_info.name.startswith("__MACOSX") or tar_info.name.startswith("._"):
                 continue
             mt = mimetypes.guess_type(tar_info.name)
             if mt and mt[0] and mt[0].startswith("image/"):

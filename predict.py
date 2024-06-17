@@ -81,7 +81,8 @@ class Predictor(BasePredictor):
 
         self.weights_cache = WeightsDownloadCache()
         self.loaded_weights = None
-        if str(weights) == "weights":
+        weights = str(weights)
+        if weights == "weights":
             weights = None
         if weights:
             self.load_trained_weights(weights)
