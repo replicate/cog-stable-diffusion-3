@@ -39,6 +39,7 @@ def download_weights(url, dest):
 
 class Predictor(BasePredictor):
     def load_trained_weights(self, weights):
+        weights = str(weights)
         if weights == self.loaded_weights:
             print("weights already loaded, no-op")
             return
@@ -81,8 +82,7 @@ class Predictor(BasePredictor):
 
         self.weights_cache = WeightsDownloadCache()
         self.loaded_weights = None
-        weights = str(weights)
-        if weights == "weights":
+        if str(weights) == "weights":
             weights = None
         if weights:
             self.load_trained_weights(weights)
