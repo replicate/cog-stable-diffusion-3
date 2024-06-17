@@ -94,7 +94,7 @@ def train(
         os.system(f"tar -cvf lora_out.tar -C {OUTPUT_DIR}/ pytorch_lora_weights.safetensors")
         logs = None
         if return_logs:
-            os.system("tar -cvf tensorboard_logs.tar -C {OUTPUT_DIR}/ logs/")
+            os.system(f"tar -cvf tensorboard_logs.tar -C {OUTPUT_DIR}/ logs/")
             logs = Path('/src/tensorboard_logs.tar')
 
         return TrainingOutput(weights=Path("/src/lora_out.tar"), logs=logs)
