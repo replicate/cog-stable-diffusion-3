@@ -4,6 +4,7 @@ import shutil
 import sys
 import tarfile
 from typing import Optional
+from zipfile import ZipFile
 from cog import Input, BaseModel, Path
 
 import subprocess
@@ -34,22 +35,37 @@ def train(
     if os.path.exists(CAPTION_DIR):
         shutil.rmtree(CAPTION_DIR)
 
-    assert str(input_images).endswith(
-        ".tar"
-    ), "files must be a tar file if not zip"
     caption_csv = None
-    with tarfile.open(input_images, "r") as tar_ref:
-        for tar_info in tar_ref:
-            if tar_info.name[-1] == "/" or tar_info.name.startswith("__MACOSX") or tar_info.name.startswith("._"):
-                continue
-            mt = mimetypes.guess_type(tar_info.name)
-            if mt and mt[0] and mt[0].startswith("image/"):
-                tar_info.name = os.path.basename(tar_info.name)
-                tar_ref.extract(tar_info, IMAGE_DIR)
-            if mt and mt[0] and mt[0] == "text/csv":
-                tar_info.name = os.path.basename(tar_info.name)
-                tar_ref.extract(tar_info, CAPTION_DIR)
-                caption_csv = os.path.join(CAPTION_DIR, tar_info.name)
+    if str(input_images).endswith(".zip"):
+        with ZipFile(str(input_images), "r") as zip_ref:
+            for zip_info in zip_ref.infolist():
+                if zip_info.filename[-1] == "/" or zip_info.filename.startswith("__MACOSX") or zip_info.filename.startswith("._"):
+                    continue
+                mt = mimetypes.guess_type(zip_info.filename)
+                if mt and mt[0] and mt[0].startswith("image/"):
+                    zip_info.filename = os.path.basename(zip_info.filename)
+                    zip_ref.extract(zip_info, IMAGE_DIR)
+                if (
+                    mt
+                    and mt[0]
+                    and mt[0] == "text/csv"
+                ):
+                    zip_info.filename = os.path.basename(zip_info.filename)
+                    zip_ref.extract(zip_info, CAPTION_DIR)
+                    caption_csv = os.path.join(CAPTION_DIR, zip_info.filename)
+    elif str(input_images).endswith(".tar"):
+        with tarfile.open(input_images, "r") as tar_ref:
+            for tar_info in tar_ref:
+                if tar_info.name[-1] == "/" or tar_info.name.startswith("__MACOSX") or tar_info.name.startswith("._"):
+                    continue
+                mt = mimetypes.guess_type(tar_info.name)
+                if mt and mt[0] and mt[0].startswith("image/"):
+                    tar_info.name = os.path.basename(tar_info.name)
+                    tar_ref.extract(tar_info, IMAGE_DIR)
+                if mt and mt[0] and mt[0] == "text/csv":
+                    tar_info.name = os.path.basename(tar_info.name)
+                    tar_ref.extract(tar_info, CAPTION_DIR)
+                    caption_csv = os.path.join(CAPTION_DIR, tar_info.name)
 
     if not os.path.exists(SD3_MODEL_CACHE):
         download_weights(SD3_URL, SD3_MODEL_CACHE)
