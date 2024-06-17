@@ -709,6 +709,8 @@ class DreamBoothDataset(Dataset):
 
                 with open(caption_csv, 'r') as file:
                     reader = csv.DictReader(file)
+                    if image_column not in row and 'image_file' in row:
+                        image_column = 'image_file'
                     for row in reader:
                         img_to_caption[row[image_column]] = row[caption_column]
 
