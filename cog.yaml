@@ -12,7 +12,7 @@ build:
     - "libxext6"
     - "wget"
   python_packages:
-    - "git+https://github.com/huggingface/diffusers.git@ec068f9b5bf7c65f93125ec889e0ff1792a00da1#egg=diffusers"
+    - "git+https://github.com/huggingface/diffusers.git@d2e7a19fd52e13ad2d9036eefd4c7bafbb8c4303#egg=diffusers"
     - "torch==2.2"
     - "transformers==4.41.2"
     - "accelerate==0.31.0"
@@ -22,6 +22,7 @@ build:
     - "peft"
     - "tensorboard"
     - "prodigyopt"
+    - "numpy<2"
 
   run:
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/latest/download/pget_$(uname -s)_$(uname -m)" && chmod +x /usr/local/bin/pget

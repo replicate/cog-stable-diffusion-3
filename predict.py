@@ -48,6 +48,7 @@ class Predictor(BasePredictor):
 
         local_weights_path = self.weights_cache.ensure(weights)
         self.txt2img_pipe.load_lora_weights(local_weights_path)
+        print("loaded weights")
         self.loaded_weights = weights
         return
 
@@ -203,8 +204,10 @@ class Predictor(BasePredictor):
         print(f"Using seed: {seed}")
 
         if replicate_weights:
+            print("loading lora weights")
             self.load_trained_weights(replicate_weights)
         elif self.loaded_weights is not None:
+            print("unloading lora weights")
             self.unload_trained_weights()
 
         width, height = self.aspect_ratio_to_width_height(aspect_ratio)
