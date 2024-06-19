@@ -61,6 +61,7 @@ class Predictor(BasePredictor):
         """Load the model into memory to make running multiple predictions efficient"""
 
         start = time.time()
+        self.boot_weights = False # just a hack to handle not hot-swapping private models.
 
         print("Loading safety checker...")
         if not os.path.exists(SAFETY_CACHE):
@@ -87,6 +88,7 @@ class Predictor(BasePredictor):
             weights = None
         if weights:
             self.load_trained_weights(weights)
+            self.boot_weights = True
 
         self.txt2img_pipe.to("cuda")
 
@@ -206,7 +208,7 @@ class Predictor(BasePredictor):
         if replicate_weights:
             print("loading lora weights")
             self.load_trained_weights(replicate_weights)
-        elif self.loaded_weights is not None:
+        elif self.loaded_weights is not None and self.boot_weights is False:
             print("unloading lora weights")
             self.unload_trained_weights()
 
