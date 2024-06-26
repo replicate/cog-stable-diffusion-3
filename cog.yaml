@@ -14,13 +14,14 @@ build:
   python_packages:
     - "diffusers==0.29.1"
     - "torch==2.2"
+    - "torchvision==0.17.0"
     - "transformers==4.41.2"
     - "accelerate==0.31.0"
-    - "sentencepiece"
-    - "protobuf"
+    - "sentencepiece==0.2.0"
+    - "protobuf==5.27.1"
     - "numpy<2"
 
   run:
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/latest/download/pget_$(uname -s)_$(uname -m)" && chmod +x /usr/local/bin/pget
-    
+
 predict: "predict.py:Predictor"
