@@ -165,7 +165,7 @@ class StableDiffusion3DiffImg2ImgPipeline(StableDiffusion3Img2ImgPipeline):
         callback_steps: int = 1,
         mask: Image.Image = None,
     ):
-        image = ensure_image_size_multiple_of_eight(image)
+        image = ensure_image_size_multiple_of_sixteen(image)
         width, height = image.size
         inverted_mask = ImageOps.invert(
             mask.convert("RGB")
