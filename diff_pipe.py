@@ -170,7 +170,7 @@ class StableDiffusion3DiffImg2ImgPipeline(StableDiffusion3Img2ImgPipeline):
         inverted_mask = ImageOps.invert(
             mask.convert("RGB")
         )  # consistent with existing inpainting models
-        resized_mask = inverted_mask.resize([width // 8, sixteen // 8])
+        resized_mask = inverted_mask.resize([width // 8, height // 8])
         map = torchvision.transforms.ToTensor()(resized_mask)[0, :, :].to("cuda")
 
         if prompt is not None and isinstance(prompt, str):
