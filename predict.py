@@ -145,7 +145,7 @@ class Predictor(BasePredictor):
             default=None,
         ),
         mask: Path = Input(
-            description="Mask for inpainting. White pixels will be inpainted and black pixels will be preserved. Gray pixels will be partially inpainted. A `prompt_strength` setting of >0.8 usually works well. Note that Stable Diffusion 3 was not trained for inpainting, so your mileage may vary.",
+            description="Mask for inpainting. White pixels will be inpainted and black pixels will be preserved. Gray pixels will be partially inpainted. If using a `mask` input, you must also provide an `image` input. A `prompt_strength` setting of >0.8 usually works well. Note that Stable Diffusion 3 was not trained for inpainting, so your mileage may vary.",
             default=None,
         ),
         aspect_ratio: str = Input(
