@@ -139,7 +139,7 @@ class Predictor(BasePredictor):
             default=1,
         ),
         guidance_scale: float = Input(
-            description="Scale for classifier-free guidance", ge=0, le=50, default=7.0
+            description="Scale for classifier-free guidance", ge=0, le=50, default=4.5
         ),
         prompt_strength: float = Input(
             description="Prompt strength when using img2img. 1.0 corresponds to full destruction of information in image",
